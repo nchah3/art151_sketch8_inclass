@@ -128,14 +128,29 @@ nn.on("load", () => {
 
 
   function spawnEnemy () {
+    const leftEdge = width() * 0.6;
+    const rightEdge = width() - 56;
+    let direction = -1;
 
     const enemy = add([
-
-      // enemy setup
-
+      sprite("slime_enemy"),
+      pos(rightEdge, height() - 80),
+      scale(3),
+      area(),
+      "enemy",
     ]);
 
-    // enemy timer
+    enemy.onUpdate(() => {
+      enemy.move(60 * direction, 0);
+      
+      if (enemy.pos.x <= leftEdge) {
+        enemy.pos.x = leftEdge;
+        direction = 1;
+      } else if (enemy.pos.x >= rightEdge) {
+        enemy.pos.x = rightEdge;
+        direction = -1;
+      }
+    })
 
   }
 
@@ -219,7 +234,7 @@ nn.on("load", () => {
 
     // ENEMIES
 
-    spawnEnemyWave();
+    spawnEnemy();
 
     // enemy loop
 
@@ -308,9 +323,7 @@ nn.on("load", () => {
 
 
     player.onCollide("enemy", () => {
-
-      // lose logic
-
+      go("lose");
     });
 
 
@@ -533,31 +546,16 @@ nn.on("load", () => {
   //LOSE GAME SCENE
 
   scene("lose", () => {
-
     add([
-
-      // lose text
-
+      text("The slime got you!\nPress Enter to try again.", { size: 24 }),
+      pos(16, 16),
+      color(32, 40, 35),
     ]);
-
-
-
-    add([
-
-      // restart text
-
-    ]);
-
-
-
+    
     onKeyPress("enter", () => {
-
-      // reset variables
-
-      // restart game
-
-    });
-
+      gameScore = 0;
+      go("level1");
+    })
   });
 
 
