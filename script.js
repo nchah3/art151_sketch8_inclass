@@ -114,13 +114,14 @@ nn.on("load", () => {
 
 
 
-  function spawnCollectible () {
-
+  function spawnCollectible(x = width() / 2, y = height() - 56) {
     add([
-
-      // collectible setup
-
-    ]);
+      sprite("gold coin"),
+      pos(x, y),
+      scale(3),
+      area(),
+      "collectible",
+    ])
 
   }
 
@@ -157,9 +158,9 @@ nn.on("load", () => {
     let facing = RIGHT;
 
     const scoreText = add([
-
-      // score display
-
+      text("Score: " + gameScore, { size: 24 }),
+      pos(16, 16),
+      color(32, 40, 35),
     ]);
 
     const timer = add([
@@ -207,9 +208,9 @@ nn.on("load", () => {
     // COLLECTIBLES
 
     for (let i = 0; i < 5; i++) {
-
-      spawnCollectible();
-
+      const x = width() * (i + 3) / 8;
+      const y = height() - 56 - i * 20;
+      spawnCollectible(x, y);
     }
 
     // collectible loop
@@ -298,9 +299,10 @@ nn.on("load", () => {
     // COLLISIONS
 
     player.onCollide("collectible", (item) => {
-
-      // collect logic
-
+      destroy(item);
+      gameScore += 1;
+      scoreText.text = "Score: " + gameScore;
+      play("pickup");
     });
 
 
