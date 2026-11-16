@@ -526,6 +526,8 @@ nn.on("load", () => {
       gameScore = 0;
       go("level1");
     })
+    
+    onKeyPress("space", toggleMusic);
   });
 
 
@@ -543,27 +545,21 @@ nn.on("load", () => {
       gameScore = 0;
       go("level1");
     })
+    
+    onKeyPress("space", toggleMusic);
   });
 
 
 
   // START MUSIC ONCE LOADED
 
-  onLoad(() => {
-
-    // music start
-
-  });
-
-
-
-  onKeyPress("space", () => {
-
-    // music toggle
-
-  });
-
-
+  function toggleMusic() {
+    if (!bgm) {
+      bgm = play("bgm", { loop: true, volume: 0.25 });
+    } else {
+      bgm.paused = !bgm.paused;
+    }
+  }
 
   // RESET GAME 
 
