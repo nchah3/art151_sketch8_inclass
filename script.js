@@ -303,12 +303,16 @@ nn.on("load", () => {
 
       // movement logic
 
-      // timer logic
+      // dt() gives the elapsed seconds since the last frame.
+      timeLeft = Math.max(0, timeLeft - dt());
+      timer.text = "Time: " + Math.cell(timeLeft);
 
       if (hitSlime) {
         go("lose");
       } else if (gameScore >= 5) {
         go("win")
+      } else if (timeLeft === 0) {
+        go("lose", "Time ran out!");
       }
     });
 
