@@ -167,6 +167,7 @@ nn.on("load", () => {
   // LVL 1 SCENE
 
   scene("level1", () => {
+    onKeyPress("space", toggleMusic);
 
     setGravity(640);
 
