@@ -305,7 +305,7 @@ nn.on("load", () => {
 
       // dt() gives the elapsed seconds since the last frame.
       timeLeft = Math.max(0, timeLeft - dt());
-      timer.text = "Time: " + Math.cell(timeLeft);
+      timer.text = "Time: " + Math.ceil(timeLeft);
 
       if (hitSlime) {
         go("lose");
