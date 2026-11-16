@@ -171,6 +171,7 @@ nn.on("load", () => {
     setGravity(640);
 
     let facing = RIGHT;
+    let hitSlime = false;
 
     const scoreText = add([
       text("Score: " + gameScore, { size: 24 }),
@@ -303,10 +304,11 @@ nn.on("load", () => {
 
       // timer logic
 
-      // win check
-
-      // lose check
-
+      if (hitSlime) {
+        go("lose");
+      } else if (gameScore >= 5) {
+        go("win")
+      }
     });
 
 
@@ -323,7 +325,7 @@ nn.on("load", () => {
 
 
     player.onCollide("enemy", () => {
-      go("lose");
+      hitSlime = true;
     });
 
 
@@ -514,31 +516,16 @@ nn.on("load", () => {
   // WIN GAME SCENE
 
   scene("win", () => {
-
     add([
-
-      // win text
-
+      text("You collected all five coins!\nPress Enter to play again.", { size: 24 }),
+      pos(16, 16),
+      color(32, 40, 35),
     ]);
-
-
-
-    add([
-
-      // restart text
-
-    ]);
-
-
-
+    
     onKeyPress("enter", () => {
-
-      // reset variables
-
-      // restart game
-
-    });
-
+      gameScore = 0;
+      go("level1");
+    })
   });
 
 
