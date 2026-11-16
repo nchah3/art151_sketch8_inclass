@@ -87,7 +87,7 @@ nn.on("load", () => {
 
   loadSound("jump", "assets/jump.wav");
 
-  loadMusic("bgm", "assets/background_music.ogg");
+  loadMusic("bgm","assets/background_music.ogg");
 
 
 
@@ -104,11 +104,12 @@ nn.on("load", () => {
   function makePlatform (x, y, w, colorValue) {
 
     add([
-
-      // platform setup
-
+      rect(w, 32),
+      pos(x, y),
+      color(colorValue),
+      area(),
+      body({ isStatic: true }),
     ]);
-
   }
 
 
@@ -174,6 +175,7 @@ nn.on("load", () => {
       pos(80, 80),
       scale(3),
       area(),
+      body(),
     ]);
 
 
@@ -190,11 +192,7 @@ nn.on("load", () => {
 
     // PLATFORMS
 
-    makePlatform(
-
-      // floor platform
-
-    );
+    makePlatform(0, height() - 32, width(), rgb(76, 96, 79));
 
 
 
@@ -242,10 +240,11 @@ nn.on("load", () => {
 
 
 
-    onButtonDown("moveUp", () => {
-
-      // jump logic
-
+    onButtonPress("moveUp", () => {
+      if (player.isGrounded()) {
+        player.jump(JUMP_FORCE);
+        play("jump");
+      }
     });
 
 
