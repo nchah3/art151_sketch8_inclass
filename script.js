@@ -1,5 +1,5 @@
 //SKETCH 8
-//COMPLETED BY: your name
+//COMPLETED BY: Nihal Chahal
 ///DATE: 
 
 nn.on("load", () => {
