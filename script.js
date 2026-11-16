@@ -30,6 +30,7 @@ nn.on("load", () => {
     },
 
     // background color
+    background:[211,211,211]
 
     // background settings
 
@@ -60,69 +61,33 @@ nn.on("load", () => {
 
   // player sprite
 
-  loadSprite(
-    "name",
+  loadSprite("knight", "assets/knight_walk.png", {
+    sliceX: 4,
+    sliceY: 4,
+    anims: {
+      walkUp: { from: 0, to: 3, loop: true },
+      walkLeft: { from: 4, to: 7, },
+      walkRight: { from: 8, to: 11, loop: true },
+      walkDown: { from: 12, to: 15, loop: true },
+    },
+  });
 
-    // sprite file
+  // collectible sprite
 
-    {
-
-      // sprite animation
-
-    }
-  );
-
-  // idle sprite
-
-  loadSprite(
-    "name",
-
-    // sprite file
-
-    {
-
-      // frame animation
-
-    }
-  );
+  loadSprite("gold coin", "assets/gold_coin.png");
 
   // enemy sprite
 
   loadSprite(
-    "name",
-
-    // enemy file
-  );
-
-  // collectible sprite
-
-  loadSprite(
-    "name",
-
-    // collectible file
-  );
-
-
+    "slime_enemy", "assets/slime_enemy.png");
 
   // AUDIO ASSETS
 
-  loadSound(
-    "name",
+  loadSound("pickup", "assets/coin_pickup.wav");
 
-    // sound file
-  );
+  loadSound("jump", "assets/jump.wav");
 
-  loadSound(
-    "name",
-
-    // sound file
-  );
-
-  loadMusic(
-    "name",
-
-    // music file
-  );
+  loadMusic("bgm", "assets/background_music.ogg");
 
 
 
@@ -205,9 +170,10 @@ nn.on("load", () => {
 
 
     const player = add([
-
-      // player setup
-
+      sprite("knight", { frame: 8 }),
+      pos(80, 80),
+      scale(3),
+      area(),
     ]);
 
 
@@ -263,17 +229,15 @@ nn.on("load", () => {
     // CONTROLS
 
     onButtonDown("moveRight", () => {
-
-      // move right
-
+      player.move(SPEED, 0);
+      player.frame = 8;
     });
 
 
 
     onButtonDown("moveLeft", () => {
-
-      // move left
-
+      player.move(-SPEED, 0);
+      player.frame = 4;
     });
 
 
