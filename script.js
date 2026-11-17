@@ -181,9 +181,9 @@ nn.on("load", () => {
     ]);
 
     const timer = add([
-
-      // timer display
-
+      text("Time: " + Math.ceil(timeLeft), { size: 24 }),
+      pos(16, 48),
+      color(32, 40, 35),
     ]);
 
 
