@@ -228,11 +228,12 @@ nn.on("load", () => {
 
     // COLLECTIBLES
 
-    for (let i = 0; i < 5; i++) {
-      const x = width() * (i + 3) / 8;
-      const y = height() - 56 - i * 20;
-      spawnCollectible(x, y);
-    }
+    // Two floor coins complete the five-coin goal.
+    spawnCollectible(width() / 10, height() - 56);
+    
+    const lastPlatformX = width() / 4 + 2 * platformSpacing;
+    const finalCoinX = Math.min(width() - 64, lastPlatformX + platformWidth + 96);
+    spawnCollectible(finalCoinX, height() - 56);
 
     // collectible loop
 
@@ -323,6 +324,10 @@ nn.on("load", () => {
           player.play(animation);
         }
       }
+      // Keeping the player inside the left and right edges
+      const rightEdge = Math.max(0, width() - player.width * player.scale.x);
+      player.pos.x = clamp(player.pos.x, 0, rightEdge);
+      
       // dt() gives the elapsed seconds since the last frame.
       timeLeft = Math.max(0, timeLeft - dt());
       timer.text = "Time: " + Math.ceil(timeLeft);
