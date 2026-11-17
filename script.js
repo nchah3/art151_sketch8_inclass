@@ -312,7 +312,7 @@ nn.on("load", () => {
       } else if (gameScore >= 5) {
         go("win")
       } else if (timeLeft === 0) {
-        go("lose", "Time ran out!");
+        go("timeup");
       }
     });
 
@@ -554,6 +554,17 @@ nn.on("load", () => {
     onKeyPress("space", toggleMusic);
   });
 
+  // TIMER END SCENE
+  
+  scene("timeup", () => {
+    add([
+      text("Time ran out!\nPress Enter to try again.", { size: 24 }),
+      pos(16, 16),
+      color(32, 40, 35),
+    ]);
+    
+    onKeyPress("space", toggleMusic);
+  });
 
 
   // START MUSIC ONCE LOADED
