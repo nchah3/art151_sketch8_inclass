@@ -300,9 +300,25 @@ nn.on("load", () => {
     // TIMER & JOYSTICK (ANALOG) MOVEMENT
 
     onUpdate(() => {
-
-      // movement logic
-
+      
+      const movingLeft = isButtonDown("moveLeft");
+      const movingRight = isButtonDown("moveRight");
+      
+      // Stand still when neither direction, or both directions, are held.
+      if (movingLeft === movingRight) {
+        player.stop();
+        player.frame = facing.x < 0 ? 4: 8;
+      } else {
+        facing = movingLeft ? LEFT : RIGHT;
+        player.move(facing.x * SPEED, 0);
+        
+        const animation = movingLeft ? "walkLeft" : "walkRight";
+        
+        // Start each walk once so its frames can keep playing.
+        if (player.getCurAnim()?.name !== animation) {
+          player.play(animation);
+        }
+      }
       // dt() gives the elapsed seconds since the last frame.
       timeLeft = Math.max(0, timeLeft - dt());
       timer.text = "Time: " + Math.ceil(timeLeft);
@@ -529,6 +545,7 @@ nn.on("load", () => {
     
     onKeyPress("enter", () => {
       gameScore = 0;
+      timeLeft = 30;
       go("level1");
     })
     
@@ -548,6 +565,7 @@ nn.on("load", () => {
     
     onKeyPress("enter", () => {
       gameScore = 0;
+      timeLeft = 30;
       go("level1");
     })
     
@@ -562,6 +580,12 @@ nn.on("load", () => {
       pos(16, 16),
       color(32, 40, 35),
     ]);
+    
+    onKeyPress("enter", () => {
+      gameScore = 0;
+      timeLeft = 30;
+      go("level1");
+    });
     
     onKeyPress("space", toggleMusic);
   });
