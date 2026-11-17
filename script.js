@@ -211,13 +211,17 @@ nn.on("load", () => {
     // PLATFORMS
 
     makePlatform(0, height() - 32, width(), rgb(76, 96, 79));
-
-
+    
+    
+    const platformWidth = Math.min(100, width() / 5);
+    const platformSpacing = Math.min(140, width() / 4);
+    const platformRise = Math.min(80, height() / 6);
 
     for (let i = 0; i < 5; i++) {
-
-      // random platforms
-
+      const x = width() / 4 + i * platformSpacing;
+      const y = height() - 32 - (i + 1) * platformRise;
+      makePlatform(x, y, platformWidth, rgb(108, 133, 99));
+      spawnCollectible(x + platformWidth / 2 - 10, y - 24);
     }
 
 
