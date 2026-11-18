@@ -30,14 +30,17 @@ nn.on("load", () => {
     },
 
     // background color
-    background:[211,211,211]
+    background:[211,211,211],
 
     // background settings
+    // KAPLAY reference: https://kaplayjs.com/docs/api/
+    crisp: true,
 
   });
+  
 
 
-
+  
   // GLOBAL VARIABLES
 
 
@@ -53,6 +56,8 @@ nn.on("load", () => {
   let gameScore = 0;
 
   let spawnSide = "left";
+  let currentLevel = 1;
+  let collectedCoins = [[], []];
 
 
 
@@ -66,16 +71,16 @@ nn.on("load", () => {
     sliceY: 4,
     anims: {
       walkUp: { from: 0, to: 3, loop: true },
-      walkLeft: { from: 4, to: 7, },
+      walkLeft: { from: 4, to: 7, loop: true },
       walkRight: { from: 8, to: 11, loop: true },
       walkDown: { from: 12, to: 15, loop: true },
     },
   });
-
+  
   // collectible sprite
-
+  
   loadSprite("gold coin", "assets/gold_coin.png");
-
+  
   // enemy sprite
 
   loadSprite(
@@ -96,6 +101,10 @@ nn.on("load", () => {
   function playSoundEffect () {
 
     // sound logic
+    if (soundEffect) {
+      soundEffect.stop();
+    }
+    soundEffect = play("jump", { volume: 0.3, speed: 1.8 });
 
   }
 
@@ -109,18 +118,23 @@ nn.on("load", () => {
       color(colorValue),
       area(),
       body({ isStatic: true }),
+      "platform",
     ]);
   }
 
 
 
-  function spawnCollectible(x = width() / 2, y = height() - 56) {
+  function spawnCollectible(x = width() / 2, y = height() - 56, coinId = 0) {
+    if (collectedCoins[currentLevel - 1].includes(coinId)) {
+      return;
+    }
     add([
       sprite("gold coin"),
       pos(x, y),
       scale(3),
       area(),
       "collectible",
+      { coinId: coinId, startY: y },
     ])
 
   }
@@ -142,7 +156,7 @@ nn.on("load", () => {
 
     enemy.onUpdate(() => {
       enemy.move(60 * direction, 0);
-      
+           
       if (enemy.pos.x <= leftEdge) {
         enemy.pos.x = leftEdge;
         direction = 1;
@@ -152,6 +166,7 @@ nn.on("load", () => {
       }
     })
 
+    return enemy;
   }
 
 
@@ -159,31 +174,48 @@ nn.on("load", () => {
   function spawnEnemyWave () {
 
     // wave logic
+    if (get("enemy").length >= 2) {
+      return;
+    }
+    const enemy = spawnEnemy();
+    if (spawnSide === "left") {
+      enemy.pos.x = width() * 0.6;
+    }
+    spawnSide = spawnSide === "left" ? "right" : "left";
+
+    const player = get("player")[0];
+    if (player && Math.abs(enemy.pos.x - player.pos.x) < 96) {
+      destroy(enemy);
+    }
 
   }
 
 
-
+  
   // LVL 1 SCENE
 
   scene("level1", () => {
     onKeyPress("space", toggleMusic);
+    currentLevel = 1;
 
     setGravity(640);
 
     let facing = RIGHT;
     let hitSlime = false;
+    let changingLevel = false;
 
     const scoreText = add([
       text("Score: " + gameScore, { size: 24 }),
       pos(16, 16),
       color(32, 40, 35),
+      fixed(),
     ]);
 
     const timer = add([
       text("Time: " + Math.ceil(timeLeft), { size: 24 }),
       pos(16, 48),
       color(32, 40, 35),
+      fixed(),
     ]);
 
 
@@ -194,8 +226,9 @@ nn.on("load", () => {
       scale(3),
       area(),
       body(),
+      "player",
     ]);
-
+    
 
 
     // LEVEL EXIT
@@ -203,6 +236,11 @@ nn.on("load", () => {
     const levelExit = add([
 
       // exit setup
+      rect(32, 64),
+      pos(width() - 48, height() - 96),
+      color(140, 140, 140),
+      area(),
+      "levelExit",
 
     ]);
 
@@ -217,11 +255,11 @@ nn.on("load", () => {
     const platformSpacing = Math.min(140, width() / 4);
     const platformRise = Math.min(80, height() / 6);
 
-    for (let i = 0; i < 5; i++) {
-      const x = width() / 4 + i * platformSpacing;
+    for (let i = 0; i < 3; i++) {
+      const x = Math.min(width() - platformWidth - 56, width() / 4 + i * platformSpacing);
       const y = height() - 32 - (i + 1) * platformRise;
       makePlatform(x, y, platformWidth, rgb(108, 133, 99));
-      spawnCollectible(x + platformWidth / 2 - 10, y - 24);
+      spawnCollectible(x + platformWidth / 2 - 10, y - 24, i);
     }
 
 
@@ -229,42 +267,52 @@ nn.on("load", () => {
     // COLLECTIBLES
 
     // Two floor coins complete the five-coin goal.
-    spawnCollectible(width() / 10, height() - 56);
+    spawnCollectible(width() / 10, height() - 56, 3);
     
     const lastPlatformX = width() / 4 + 2 * platformSpacing;
     const finalCoinX = Math.min(width() - 64, lastPlatformX + platformWidth + 96);
-    spawnCollectible(finalCoinX, height() - 56);
+    spawnCollectible(finalCoinX, height() - 56, 4);
 
     // collectible loop
+    onUpdate("collectible", (item) => {
+      item.pos.y = item.startY + Math.sin(time() * 3) * 2;
+    });
 
 
 
     // ENEMIES
 
-    spawnEnemy();
+    spawnEnemyWave();
 
     // enemy loop
+    loop(8, () => {
+      if (!changingLevel) {
+        spawnEnemyWave();
+      }
+    });
 
 
 
     // CONTROLS
 
     onButtonDown("moveRight", () => {
-      player.move(SPEED, 0);
-      player.frame = 8;
+      if (!changingLevel && !isButtonDown("moveLeft")) {
+        player.move(SPEED, 0);
+      }
     });
 
 
 
     onButtonDown("moveLeft", () => {
-      player.move(-SPEED, 0);
-      player.frame = 4;
+      if (!changingLevel && !isButtonDown("moveRight")) {
+        player.move(-SPEED, 0);
+      }
     });
 
 
 
     onButtonPress("moveUp", () => {
-      if (player.isGrounded()) {
+      if (!changingLevel && player.isGrounded()) {
         player.jump(JUMP_FORCE);
         play("jump");
       }
@@ -275,6 +323,9 @@ nn.on("load", () => {
     onButtonDown("moveDown", () => {
 
       // move down
+      if (!changingLevel && !player.isGrounded()) {
+        player.vel.y = Math.max(player.vel.y, 280);
+      }
 
     });
 
@@ -282,32 +333,60 @@ nn.on("load", () => {
 
     // PROJECTILES
 
+    let canShoot = true;
     function shoot () {
+      if (!canShoot || changingLevel) {
+        return;
+      }
+      canShoot = false;
+      wait(0.25, () => { canShoot = true; });
+      playSoundEffect();
 
       add([
 
         // projectile setup
+        rect(10, 4),
+        pos(player.pos.x + (facing.x > 0 ? 48 : -10), player.pos.y + 24),
+        color(255, 200, 60),
+        area(),
+        move(facing, 360),
+        lifespan(1.5),
+        "bullet",
 
       ]);
 
     }
 
-    // shoot controls
-
-
 
     // CAMERA
 
     // camera follow
+    onUpdate(() => {
+      setCamPos(player.pos.x + player.width * player.scale.x / 2, height() / 2);
+    });
 
 
 
     // TIMER & JOYSTICK (ANALOG) MOVEMENT
 
     onUpdate(() => {
+      if (changingLevel) {
+        return;
+      }
       
-      const movingLeft = isButtonDown("moveLeft");
-      const movingRight = isButtonDown("moveRight");
+      let movingLeft = isButtonDown("moveLeft");
+      let movingRight = isButtonDown("moveRight");
+
+      // The left stick moves the player when no direction button is held.
+      const gamepads = getGamepads();
+      if (!movingLeft && !movingRight && gamepads.length > 0) {
+        const stick = gamepads[0].getStick("left");
+        movingLeft = stick.x < -DEADZONE;
+        movingRight = stick.x > DEADZONE;
+        if (movingLeft || movingRight) {
+          player.move(stick.x * SPEED, 0);
+        }
+      }
       
       // Stand still when neither direction, or both directions, are held.
       if (movingLeft === movingRight) {
@@ -315,7 +394,6 @@ nn.on("load", () => {
         player.frame = facing.x < 0 ? 4: 8;
       } else {
         facing = movingLeft ? LEFT : RIGHT;
-        player.move(facing.x * SPEED, 0);
         
         const animation = movingLeft ? "walkLeft" : "walkRight";
         
@@ -327,6 +405,10 @@ nn.on("load", () => {
       // Keeping the player inside the left and right edges
       const rightEdge = Math.max(0, width() - player.width * player.scale.x);
       player.pos.x = clamp(player.pos.x, 0, rightEdge);
+      if (player.pos.y < 0) {
+        player.pos.y = 0;
+        player.vel.y = Math.max(0, player.vel.y);
+      }
       
       // dt() gives the elapsed seconds since the last frame.
       timeLeft = Math.max(0, timeLeft - dt());
@@ -334,10 +416,11 @@ nn.on("load", () => {
 
       if (hitSlime) {
         go("lose");
-      } else if (gameScore >= 5) {
-        go("win")
       } else if (timeLeft === 0) {
         go("timeup");
+      }
+      if (gameScore >= 5) {
+        levelExit.color = rgb(70, 180, 100);
       }
     });
 
@@ -346,6 +429,10 @@ nn.on("load", () => {
     // COLLISIONS
 
     player.onCollide("collectible", (item) => {
+      if (changingLevel || !item.exists()) {
+        return;
+      }
+      collectedCoins[0].push(item.coinId);
       destroy(item);
       gameScore += 1;
       scoreText.text = "Score: " + gameScore;
@@ -363,7 +450,15 @@ nn.on("load", () => {
     onCollide("bullet", "enemy", (bullet, enemy) => {
 
       // projectile collision
+      if (bullet.exists() && enemy.exists()) {
+        destroy(bullet);
+        destroy(enemy);
+      }
 
+    });
+
+    onCollide("bullet", "platform", (bullet) => {
+      destroy(bullet);
     });
 
 
@@ -373,14 +468,27 @@ nn.on("load", () => {
     const fade = add([
 
       // fade overlay
+      rect(width(), height()),
+      pos(0, 0),
+      color(0, 0, 0),
+      opacity(0),
+      fixed(),
+      z(100),
 
     ]);
 
 
 
-    player.onCollide("levelExit", () => {
+    player.onCollideUpdate("levelExit", () => {
 
       // level transition
+      if (gameScore < 5 || changingLevel || hitSlime || timeLeft <= 0) {
+        return;
+      }
+      changingLevel = true;
+      tween(0, 1, 0.25, (value) => {
+        fade.opacity = value;
+      }).onEnd(() => { go("level2"); });
 
     });
 
@@ -391,16 +499,24 @@ nn.on("load", () => {
   // LVL 2 SCENE
 
   scene("level2", () => {
+    onKeyPress("space", toggleMusic);
+    currentLevel = 2;
 
     setGravity(640);
 
     let facing = RIGHT;
+    let hitSlime = false;
+    let changingLevel = false;
 
 
 
     const scoreText = add([
 
       // score display
+      text("Score: " + gameScore, { size: 24 }),
+      pos(16, 16),
+      color(32, 40, 35),
+      fixed(),
 
     ]);
 
@@ -409,6 +525,10 @@ nn.on("load", () => {
     const timer = add([
 
       // timer display
+      text("Time: " + Math.ceil(timeLeft), { size: 24 }),
+      pos(16, 48),
+      color(32, 40, 35),
+      fixed(),
 
     ]);
 
@@ -417,6 +537,12 @@ nn.on("load", () => {
     const player = add([
 
       // player setup
+      sprite("knight", { frame: 8 }),
+      pos(80, 0),
+      scale(3),
+      area(),
+      body(),
+      "player",
 
     ]);
 
@@ -425,6 +551,11 @@ nn.on("load", () => {
     const returnExit = add([
 
       // return exit
+      rect(24, 64),
+      pos(16, height() - 96),
+      color(70, 130, 190),
+      area(),
+      "returnExit",
 
     ]);
 
@@ -435,12 +566,22 @@ nn.on("load", () => {
     makePlatform(
 
       // floor platform
+      0, height() - 32, width(), rgb(76, 96, 79)
 
     );
 
 
 
     // random platforms
+    const platformWidth = Math.min(100, width() / 5);
+    const platformSpacing = Math.min(140, width() / 4);
+    const platformRise = Math.min(80, height() / 6);
+    for (let i = 0; i < 3; i++) {
+      const x = width() - width() / 4 - platformWidth - i * platformSpacing;
+      const y = height() - 32 - (i + 1) * platformRise - rand(0, 4);
+      makePlatform(x, y, platformWidth, rgb(108, 133, 99));
+      spawnCollectible(x + platformWidth / 2 - 10, y - 24, i);
+    }
 
 
 
@@ -451,36 +592,82 @@ nn.on("load", () => {
 
 
     // enemy loop
+    loop(6, () => {
+      if (!changingLevel) {
+        spawnEnemyWave();
+      }
+    });
 
 
 
     // COLLECTIBLES
 
-    spawnCollectible();
+    spawnCollectible(width() - 80, height() - 56, 3);
+    spawnCollectible(width() - 40, height() - 56, 4);
 
 
 
     // collectible loop
+    onUpdate("collectible", (item) => {
+      item.pos.y = item.startY + Math.sin(time() * 3) * 2;
+    });
 
 
 
     // CONTROLS
 
     // movement controls
+    onButtonDown("moveRight", () => {
+      if (!changingLevel && !isButtonDown("moveLeft")) {
+        player.move(SPEED, 0);
+      }
+    });
+    onButtonDown("moveLeft", () => {
+      if (!changingLevel && !isButtonDown("moveRight")) {
+        player.move(-SPEED, 0);
+      }
+    });
+    onButtonPress("moveUp", () => {
+      if (!changingLevel && player.isGrounded()) {
+        player.jump(JUMP_FORCE);
+        play("jump");
+      }
+    });
+    onButtonDown("moveDown", () => {
+      if (!changingLevel && !player.isGrounded()) {
+        player.vel.y = Math.max(player.vel.y, 280);
+      }
+    });
 
 
 
     // PROJECTILES
 
+    let canShoot = true;
     function shoot () {
+      if (!canShoot || changingLevel) {
+        return;
+      }
+      canShoot = false;
+      wait(0.25, () => { canShoot = true; });
+      playSoundEffect();
 
       add([
 
         // projectile setup
+        rect(10, 4),
+        pos(player.pos.x + (facing.x > 0 ? 48 : -10), player.pos.y + 24),
+        color(255, 200, 60),
+        area(),
+        move(facing, 360),
+        lifespan(1.5),
+        "bullet",
 
       ]);
 
     }
+    onKeyPress(["j", "x"], shoot);
+    onGamepadButtonPress("east", shoot);
 
 
 
@@ -489,6 +676,14 @@ nn.on("load", () => {
     player.onCollide("collectible", (item) => {
 
       // collect logic
+      if (changingLevel || !item.exists()) {
+        return;
+      }
+      collectedCoins[1].push(item.coinId);
+      destroy(item);
+      gameScore += 1;
+      scoreText.text = "Score: " + gameScore;
+      play("pickup");
 
     });
 
@@ -497,6 +692,7 @@ nn.on("load", () => {
     player.onCollide("enemy", () => {
 
       // lose logic
+      hitSlime = true;
 
     });
 
@@ -505,15 +701,27 @@ nn.on("load", () => {
     onCollide("bullet", "enemy", (bullet, enemy) => {
 
       // projectile collision
+      if (bullet.exists() && enemy.exists()) {
+        destroy(bullet);
+        destroy(enemy);
+      }
 
     });
 
+    onCollide("bullet", "platform", (bullet) => {
+      destroy(bullet);
+    });
+ 
 
 
     // CAMERA
     // camera scale
+    setCamScale(1);
 
     // camera follow
+    onUpdate(() => {
+      setCamPos(player.pos.x + player.width * player.scale.x / 2, height() / 2);
+    });
 
 
 
@@ -522,32 +730,87 @@ nn.on("load", () => {
     onUpdate(() => {
 
       // movement logic
+      if (changingLevel) {
+        return;
+      }
+      let movingLeft = isButtonDown("moveLeft");
+      let movingRight = isButtonDown("moveRight");
+      const gamepads = getGamepads();
+      if (!movingLeft && !movingRight && gamepads.length > 0) {
+        const stick = gamepads[0].getStick("left");
+        movingLeft = stick.x < -DEADZONE;
+        movingRight = stick.x > DEADZONE;
+        if (movingLeft || movingRight) {
+          player.move(stick.x * SPEED, 0);
+        }
+      }
+      if (movingLeft === movingRight) {
+        player.stop();
+        player.frame = facing.x < 0 ? 4 : 8;
+      } else {
+        facing = movingLeft ? LEFT : RIGHT;
+        const animation = movingLeft ? "walkLeft" : "walkRight";
+        if (player.getCurAnim()?.name !== animation) {
+          player.play(animation);
+        }
+      }
+      const rightEdge = Math.max(0, width() - player.width * player.scale.x);
+      player.pos.x = clamp(player.pos.x, 0, rightEdge);
+      if (player.pos.y < 0) {
+        player.pos.y = 0;
+        player.vel.y = Math.max(0, player.vel.y);
+      }
 
       // timer logic
+      timeLeft = Math.max(0, timeLeft - dt());
+      timer.text = "Time: " + Math.ceil(timeLeft);
 
       // win check
+      if (gameScore >= 10 && !hitSlime && timeLeft > 0) {
+        go("win");
+      }
 
       // lose check
+      else if (hitSlime) {
+        go("lose");
+      } else if (timeLeft === 0) {
+        go("timeup");
+      }
 
     });
 
 
 
-    player.onCollide("returnExit", () => {
+    player.onCollideUpdate("returnExit", () => {
 
       // return transition
+      if (changingLevel || hitSlime || timeLeft <= 0) {
+        return;
+      }
+      changingLevel = true;
+      const fade = add([
+        rect(width(), height()),
+        pos(0, 0),
+        color(0, 0, 0),
+        opacity(0),
+        fixed(),
+        z(100),
+      ]);
+      tween(0, 1, 0.25, (value) => {
+        fade.opacity = value;
+      }).onEnd(() => { go("level1"); });
 
     });
 
   });
-
+   
 
 
   // WIN GAME SCENE
 
   scene("win", () => {
     add([
-      text("You collected all five coins!\nPress Enter to play again.", { size: 24 }),
+      text("You collected all ten coins!\nPress Enter to play again.", { size: 24 }),
       pos(16, 16),
       color(32, 40, 35),
     ]);
@@ -555,6 +818,8 @@ nn.on("load", () => {
     onKeyPress("enter", () => {
       gameScore = 0;
       timeLeft = 30;
+      collectedCoins = [[], []];
+      spawnSide = "left";
       go("level1");
     })
     
@@ -575,6 +840,8 @@ nn.on("load", () => {
     onKeyPress("enter", () => {
       gameScore = 0;
       timeLeft = 30;
+      collectedCoins = [[], []];
+      spawnSide = "left";
       go("level1");
     })
     
@@ -593,6 +860,8 @@ nn.on("load", () => {
     onKeyPress("enter", () => {
       gameScore = 0;
       timeLeft = 30;
+      collectedCoins = [[], []];
+      spawnSide = "left";
       go("level1");
     });
     
@@ -604,7 +873,7 @@ nn.on("load", () => {
 
   function toggleMusic() {
     if (!bgm) {
-      bgm = play("bgm", { loop: true, volume: 0.25 });
+      bgm = play("bgm", { loop: true, volume: 10 });
     } else {
       bgm.paused = !bgm.paused;
     }
